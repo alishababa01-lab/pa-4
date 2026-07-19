@@ -24,7 +24,7 @@ jobs:
 
       - name: Install Lint & Test Dependencies
         run: |
-          uv pip install --system ruff langgraph langchain mlflow databricks-sdk pydantic requests nest_asyncio
+          uv pip install --system ruff langgraph langchain mlflow databricks-sdk pydantic requests nest_asyncio langchain-mcp-adapters
 
       - name: Run Ruff Lint Check
         run: |
@@ -72,8 +72,7 @@ jobs:
 
       - name: Install Deployment Dependencies
         run: |
-          uv pip install --system mlflow databricks-sdk langchain langgraph nest_asyncio
-
+          uv pip install --system mlflow databricks-sdk langchain langgraph nest_asyncio langchain-mcp-adapters
       - name: Log model and register new Unity Catalog version
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
