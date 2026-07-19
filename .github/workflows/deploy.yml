@@ -86,3 +86,36 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           uv run python deployment/deploy.py
+
+      - name: Print deployment summary
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          uv run python -c "
+          import os
+          from databricks.sdk import WorkspaceClient
+
+          w = WorkspaceClient()
+          endpoint_name = 'document_analyst_27100316'
+          status = w.serving_endpoints.get(name=endpoint_name)
+          state = status.state
+          ready = state.ready.value if hasattr(state.ready, 'value') else str(state.ready)
+          endpoint_url = f'{w.config.host}/serving-endpoints/{endpoint_name}/invocations'
+          model_version = os.environ.get('MODEL_VERSION', 'unknown')
+
+          summary = f'''## Deployment Summary
+
+          | Field | Value |
+          |---|---|
+          | Registered Model Version | {model_version} |
+          | Endpoint Status | {ready} |
+          | Endpoint URL | \`{endpoint_url}\` |
+          '''
+          print(summary)
+
+          summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary_file:
+              with open(summary_file, 'a') as f:
+                  f.write(summary)
+          "
