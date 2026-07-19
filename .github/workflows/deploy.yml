@@ -1,0 +1,98 @@
+name: "CI/CD Pipeline - Document Analyst Deployment"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: "Static Code Analysis (Ruff)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+      - name: "Set up Python 3.10"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: "Install Linting Dependencies"
+        run: pip install ruff
+      - name: "Run Ruff Check"
+        run: ruff check rag/ client/
+
+  test:
+    name: "Graph Smoke Test Verification"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+      - name: "Set up Python 3.10"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: "Install Runtime Dependencies"
+        run: pip install langgraph langchain mlflow databricks-sdk pydantic requests nest_asyncio
+      - name: "Execute Graph Compilation Smoke Test"
+        run: |
+          python -c "
+          try:
+              from rag.graph import graph
+              print('✅ Smoke Test Passed!')
+          except Exception as e:
+              print(f'❌ Smoke Test Failed: {e}')
+              import sys; sys.exit(1)
+          "
+
+  deploy:
+    name: "Deploy to Databricks Model Serving"
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      CATALOG: "cs4603"
+      SCHEMA: "default"
+      MODEL_NAME: "alisha_document_analyst_model"
+      ENDPOINT_NAME: "alisha-document-analyst"
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+      - name: "Set up Python 3.10"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: "Install Deployment SDKs"
+        run: pip install mlflow databricks-sdk langchain langgraph nest_asyncio
+      - name: "Execute Pipeline Logic"
+        run: |
+          python -c "
+          import os, sys, mlflow
+          from databricks.sdk import WorkspaceClient
+          from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedModelInput
+          
+          host = os.environ.get('DATABRICKS_HOST')
+          token = os.environ.get('DATABRICKS_TOKEN')
+          mlflow.set_registry_uri('databricks-uc')
+          
+          full_uc_model_path = f\"{os.environ['CATALOG']}.{os.environ['SCHEMA']}.{os.environ['MODEL_NAME']}\"
+          
+          from rag.graph import graph
+          compiled_graph = graph.compile()
+          
+          with mlflow.start_run():
+              model_info = mlflow.langchain.log_model(
+                  lc_model=compiled_graph,
+                  artifact_path='model',
+                  registered_model_name=full_uc_model_path
+              )
+          
+          deployed_version = model_info.registered_model_version
+          w = WorkspaceClient(host=host, token=token)
+          config = EndpointCoreConfigInput(
+              served_models=[ServedModelInput(model_name=full_uc_model_path, model_version=str(deployed_version), workload_size='Small', scale_to_zero_enabled=True)]
+          )
+          w.serving_endpoints.update_config(name=os.environ['ENDPOINT_NAME'], served_models=config.served_models)
+          print('🚀 DEPLOYMENT COMPLETED SUCCESSFULLY')
+          "
