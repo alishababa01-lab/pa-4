@@ -1,12 +1,3 @@
-# Bonus A — CI/CD pipeline (.github/workflows/deploy.yml)
-#
-# TODO: Implement a lint -> test -> deploy workflow.
-#   - lint:   ruff check on agent/ and client/
-#   - test:   a smoke test that imports and compiles the graph
-#   - deploy: ONLY on push to main; log the model, register a new UC version,
-#             and update the serving endpoint. Use GitHub Secrets for
-#             DATABRICKS_HOST / DATABRICKS_TOKEN. Add a workflow_dispatch trigger.
-
 name: deploy
 
 on:
@@ -43,13 +34,22 @@ jobs:
         run: |
           python -c "
           try:
-              try:
-                  from agent.graph import graph
-              except ImportError:
-                  from rag.graph import graph
-              print('✅ Smoke Test Passed: Graph compiled and imported successfully!')
+              from agent.graph import build_graph
+
+              # A smoke test only needs to prove the graph *compiles* — no real
+              # LLM/retriever/tool calls happen at build/compile time, so a
+              # lightweight stand-in LLM is enough to exercise add_node /
+              # add_edge / add_conditional_edges / compile without needing
+              # live Databricks credentials in CI.
+              class DummyLLM:
+                  def invoke(self, messages):
+                      raise NotImplementedError('Not called during compile-time smoke test')
+
+              graph = build_graph(llm=DummyLLM())
+              assert graph is not None, 'build_graph() returned None'
+              print(' Smoke Test Passed: Graph compiled successfully!')
           except Exception as e:
-              print(f'❌ Smoke Test Failed: {e}')
+              print(f' Smoke Test Failed: {e}')
               import sys; sys.exit(1)
           "
 
@@ -74,7 +74,14 @@ jobs:
         run: |
           uv pip install --system mlflow databricks-sdk langchain langgraph nest_asyncio
 
-      - name: Run Deployment Script
+      - name: Log model and register new Unity Catalog version
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          python deployment/log_and_register.py
+
+      - name: Deploy / update serving endpoint
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
