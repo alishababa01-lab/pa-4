@@ -12,44 +12,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
-      - name: Install Lint & Test Dependencies
+      - name: Install dependencies
         run: |
-          uv pip install --system ruff langgraph langchain mlflow databricks-sdk pydantic requests nest_asyncio langchain-mcp-adapters
+          uv sync --extra dev
 
       - name: Run Ruff Lint Check
         run: |
-          ruff check agent/ client/
+          uv run ruff check agent/ client/
 
       - name: Run Graph Smoke Test
         run: |
-          python -c "
+          uv run python -c "
           try:
               from agent.graph import build_graph
 
-              # A smoke test only needs to prove the graph *compiles* — no real
-              # LLM/retriever/tool calls happen at build/compile time, so a
-              # lightweight stand-in LLM is enough to exercise add_node /
-              # add_edge / add_conditional_edges / compile without needing
-              # live Databricks credentials in CI.
               class DummyLLM:
                   def invoke(self, messages):
                       raise NotImplementedError('Not called during compile-time smoke test')
 
               graph = build_graph(llm=DummyLLM())
               assert graph is not None, 'build_graph() returned None'
-              print(' Smoke Test Passed: Graph compiled successfully!')
+              print('✅ Smoke Test Passed: Graph compiled successfully!')
           except Exception as e:
-              print(f' Smoke Test Failed: {e}')
+              print(f'❌ Smoke Test Failed: {e}')
               import sys; sys.exit(1)
           "
 
@@ -60,29 +55,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
-      - name: Install Deployment Dependencies
+      - name: Install dependencies
         run: |
-          uv pip install --system mlflow databricks-sdk langchain langgraph nest_asyncio langchain-mcp-adapters
+          uv sync
+
       - name: Log model and register new Unity Catalog version
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_MODEL: ${{ secrets.DATABRICKS_MODEL }}
         run: |
-          python deployment/log_and_register.py
+          uv run python deployment/log_and_register.py
 
       - name: Deploy / update serving endpoint
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          python deployment/deploy.py
+          uv run python deployment/deploy.py
