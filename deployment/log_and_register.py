@@ -15,11 +15,14 @@ MODEL_NAME = "cs4603.default.document_analyst_model"  # catalog.schema.model_nam
 
 def main() -> None:
     mlflow.set_registry_uri("databricks-uc")
-
+    input_example = {
+        "messages": [{"role": "user", "content": "What was FY2023 total revenue?"}]
+    }
     with mlflow.start_run(run_name="document_analyst_deploy"):
         logged_model = mlflow.langchain.log_model(
             lc_model="deployment/agent_model.py",
             artifact_path="document_analyst_model",
+            input_example=input_example,
         )
 
     registered = mlflow.register_model(

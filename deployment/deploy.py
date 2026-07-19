@@ -106,8 +106,8 @@ if __name__ == "__main__":
     # Example execution (Adjust catalog, schema, and index names based on your UC details)
     deploy_or_update_serving_endpoint(
         endpoint_name="document_analyst_27100316",
-        model_name="main.default.document_analyst_model",  # catalog.schema.model_name
+        model_name="cs4603.default.document_analyst_model",  # catalog.schema.model_name
         model_version="1",
-        vs_endpoint="your-vector-search-endpoint-name",
-        vs_index="main.default.your_index_name"
+        vs_endpoint="alisha-vs-endpoint",
+        vs_index="cs4603.default.alisha_analyst_index"
     )
