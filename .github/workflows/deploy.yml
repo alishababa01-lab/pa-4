@@ -74,6 +74,9 @@ jobs:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
           DATABRICKS_MODEL: ${{ secrets.DATABRICKS_MODEL }}
+          VECTOR_SEARCH_ENDPOINT: ${{ vars.VECTOR_SEARCH_ENDPOINT }}
+          VECTOR_SEARCH_INDEX: ${{ vars.VECTOR_SEARCH_INDEX }}
+          EMBEDDINGS_ENDPOINT: ${{ vars.EMBEDDINGS_ENDPOINT }}
         run: |
           uv run python deployment/log_and_register.py
 
