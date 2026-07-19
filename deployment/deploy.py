@@ -32,17 +32,18 @@ def deploy_or_update_serving_endpoint(
 
     # Construct the configuration input
     config = EndpointCoreConfigInput(
-        served_entities=[
-            ServedEntityInput(
-                name="document_analyst_entity",  # A local name for your served entity within the endpoint
-                entity_name=model_name,
-                entity_version=model_version,
-                workload_size="Small",
-                scale_to_zero_enabled=True,
-                environment_vars=environment_vars
-            )
-        ]
-    )
+    name=endpoint_name,
+    served_entities=[
+        ServedEntityInput(
+            name="document_analyst_entity",
+            entity_name=model_name,
+            entity_version=model_version,
+            workload_size="Small",
+            scale_to_zero_enabled=True,
+            environment_vars=environment_vars
+        )
+    ]
+)
 
     # Check if the serving endpoint already exists
     endpoint_exists = False
