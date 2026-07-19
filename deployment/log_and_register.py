@@ -10,7 +10,7 @@ import os
 
 import mlflow
 
-MODEL_NAME = "main.default.document_analyst_model"  # catalog.schema.model_name
+MODEL_NAME = "cs4603.default.document_analyst_model"  # catalog.schema.model_name
 
 
 def main() -> None:
