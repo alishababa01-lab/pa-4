@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import re
-from langchain_core.messages import SystemMessage, HumanMessage
+
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from agent.state import AnalystState
 
 # Prompt instructing the LLM to structure output as a clean JSON list of 2-5 atomic steps

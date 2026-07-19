@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
-from langchain_core.messages import SystemMessage, HumanMessage
+
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from agent.state import AnalystState
 
 RAG = "rag_agent"

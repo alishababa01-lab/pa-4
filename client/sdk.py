@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import time
-import json
-import requests
 from collections.abc import Iterator
+
+import requests
 
 
 class AnalystClientError(Exception):

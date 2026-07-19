@@ -1,7 +1,8 @@
 """Synthesizer node (Task 1.6)."""
 from __future__ import annotations
 
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
 from agent.state import AnalystState
 
 SYNTHESIS_PROMPT = """You are a senior investment analyst. Your task is to write a cohesive, professional final response answering the user's initial inquiry.
